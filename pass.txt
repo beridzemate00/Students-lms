@@ -1,5 +1,0 @@
-admin: admin@example.com / password123
-
-teacher: teacher@example.com / password123
-
-student: student@example.com / password123
