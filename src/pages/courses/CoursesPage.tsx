@@ -4,8 +4,10 @@ import { useAuth } from "../../context/AuthContext";
 import type { User } from "../../types";
 
 const CoursesPage: React.FC = () => {
-  const { state, addCourse } = useData();
+  const { state, addCourse, updateCourse, deleteCourse } = useData();
   const { currentUser } = useAuth();
+
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [teacherId, setTeacherId] = useState<string>("");
@@ -15,17 +17,47 @@ const CoursesPage: React.FC = () => {
   useEffect(() => {
     if (currentUser?.role === "teacher") {
       setTeacherId(currentUser.id);
+    } else if (!teacherId && teachers[0]) {
+      setTeacherId(teachers[0].id);
+    }
+  }, [currentUser, teachers, teacherId]);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setTitle("");
+    setDescription("");
+    if (currentUser?.role === "teacher") {
+      setTeacherId(currentUser.id);
     } else if (teachers[0]) {
       setTeacherId(teachers[0].id);
     }
-  }, [currentUser, teachers]);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !teacherId) return;
-    addCourse({ title, description, teacherId });
-    setTitle("");
-    setDescription("");
+
+    if (editingId) {
+      updateCourse({ id: editingId, title, description, teacherId });
+    } else {
+      addCourse({ title, description, teacherId });
+    }
+
+    resetForm();
+  };
+
+  const startEdit = (courseId: string) => {
+    const course = state.courses.find((c) => c.id === courseId);
+    if (!course) return;
+    setEditingId(course.id);
+    setTitle(course.title);
+    setDescription(course.description || "");
+    setTeacherId(course.teacherId);
+  };
+
+  const handleDelete = (courseId: string) => {
+    if (!window.confirm("Delete this course?")) return;
+    deleteCourse(courseId);
   };
 
   const resolveTeacher = (id: string): User | undefined =>
@@ -36,12 +68,19 @@ const CoursesPage: React.FC = () => {
       ? state.courses.filter((c) => c.teacherId === currentUser.id)
       : state.courses;
 
+  const titleText = editingId ? "Edit course" : "Create course";
+  const buttonLabel = editingId ? "Save changes" : "Create";
+
+  const canEdit =
+    currentUser && (currentUser.role === "admin" || currentUser.role === "teacher");
+
   return (
     <div>
       <h1 className="page-title">Courses</h1>
-      {currentUser && currentUser.role !== "student" && (
+
+      {canEdit && (
         <div className="card" style={{ marginBottom: "1.5rem" }}>
-          <h2 className="card-title">Create course</h2>
+          <h2 className="card-title">{titleText}</h2>
           <form className="simple-form" onSubmit={handleSubmit}>
             <label className="field-inline">
               <span>Title</span>
@@ -72,8 +111,17 @@ const CoursesPage: React.FC = () => {
               </select>
             </label>
             <button className="btn-primary" type="submit">
-              Create
+              {buttonLabel}
             </button>
+            {editingId && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={resetForm}
+              >
+                Cancel
+              </button>
+            )}
           </form>
         </div>
       )}
@@ -90,6 +138,24 @@ const CoursesPage: React.FC = () => {
                 <p className="muted-small">
                   Teacher: {teacher ? teacher.name : "Unknown"}
                 </p>
+                {canEdit && (
+                  <div className="actions" style={{ marginTop: "0.5rem" }}>
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      onClick={() => startEdit(c.id)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn-danger"
+                      onClick={() => handleDelete(c.id)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })}

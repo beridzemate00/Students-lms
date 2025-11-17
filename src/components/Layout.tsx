@@ -28,12 +28,13 @@ const Layout: React.FC = () => {
           <Link to="/courses" className={linkClass("/courses")}>
             Courses
           </Link>
+          <Link to="/assignments" className={linkClass("/assignments")}>
+            Assignments
+          </Link>
           {currentUser?.role === "admin" && (
-            <>
-              <Link to="/users" className={linkClass("/users")}>
-                Users
-              </Link>
-            </>
+            <Link to="/users" className={linkClass("/users")}>
+              Users
+            </Link>
           )}
         </nav>
       </aside>

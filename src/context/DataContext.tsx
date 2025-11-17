@@ -17,8 +17,14 @@ interface DataState {
 type DataAction =
   | { type: "SET_STATE"; payload: DataState }
   | { type: "ADD_USER"; payload: User }
+  | { type: "UPDATE_USER"; payload: User }
+  | { type: "DELETE_USER"; payload: string } // userId
   | { type: "ADD_COURSE"; payload: Course }
+  | { type: "UPDATE_COURSE"; payload: Course }
+  | { type: "DELETE_COURSE"; payload: string } // courseId
   | { type: "ADD_ASSIGNMENT"; payload: Assignment }
+  | { type: "UPDATE_ASSIGNMENT"; payload: Assignment }
+  | { type: "DELETE_ASSIGNMENT"; payload: string } // assignmentId
   | { type: "ADD_SUBMISSION"; payload: Submission };
 
 interface AddUserInput {
@@ -44,14 +50,19 @@ interface AddAssignmentInput {
 interface AddSubmissionInput {
   assignmentId: string;
   studentId: string;
-  content?: string; // placeholder for future
 }
 
 interface DataContextValue {
   state: DataState;
   addUser: (input: AddUserInput) => User;
+  updateUser: (user: User) => void;
+  deleteUser: (userId: string) => void;
   addCourse: (input: AddCourseInput) => Course;
+  updateCourse: (course: Course) => void;
+  deleteCourse: (courseId: string) => void;
   addAssignment: (input: AddAssignmentInput) => Assignment;
+  updateAssignment: (assignment: Assignment) => void;
+  deleteAssignment: (assignmentId: string) => void;
   addSubmission: (input: AddSubmissionInput) => Submission;
 }
 
@@ -136,14 +147,72 @@ const reducer = (state: DataState, action: DataAction): DataState => {
   switch (action.type) {
     case "SET_STATE":
       return action.payload;
+
     case "ADD_USER":
       return { ...state, users: [...state.users, action.payload] };
+
+    case "UPDATE_USER":
+      return {
+        ...state,
+        users: state.users.map((u) =>
+          u.id === action.payload.id ? action.payload : u
+        )
+      };
+
+    case "DELETE_USER":
+      return {
+        ...state,
+        users: state.users.filter((u) => u.id !== action.payload)
+      };
+
     case "ADD_COURSE":
       return { ...state, courses: [...state.courses, action.payload] };
+
+    case "UPDATE_COURSE":
+      return {
+        ...state,
+        courses: state.courses.map((c) =>
+          c.id === action.payload.id ? action.payload : c
+        )
+      };
+
+    case "DELETE_COURSE":
+      return {
+        ...state,
+        courses: state.courses.filter((c) => c.id !== action.payload)
+      };
+
     case "ADD_ASSIGNMENT":
-      return { ...state, assignments: [...state.assignments, action.payload] };
+      return {
+        ...state,
+        assignments: [...state.assignments, action.payload]
+      };
+
+    case "UPDATE_ASSIGNMENT":
+      return {
+        ...state,
+        assignments: state.assignments.map((a) =>
+          a.id === action.payload.id ? action.payload : a
+        )
+      };
+
+    case "DELETE_ASSIGNMENT":
+      return {
+        ...state,
+        assignments: state.assignments.filter(
+          (a) => a.id !== action.payload
+        ),
+        submissions: state.submissions.filter(
+          (s) => s.assignmentId !== action.payload
+        )
+      };
+
     case "ADD_SUBMISSION":
-      return { ...state, submissions: [...state.submissions, action.payload] };
+      return {
+        ...state,
+        submissions: [...state.submissions, action.payload]
+      };
+
     default:
       return state;
   }
@@ -163,16 +232,40 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     return user;
   };
 
+  const updateUser = (user: User) => {
+    dispatch({ type: "UPDATE_USER", payload: user });
+  };
+
+  const deleteUser = (userId: string) => {
+    dispatch({ type: "DELETE_USER", payload: userId });
+  };
+
   const addCourse = (input: AddCourseInput): Course => {
     const course: Course = { id: createId(), ...input };
     dispatch({ type: "ADD_COURSE", payload: course });
     return course;
   };
 
+  const updateCourse = (course: Course) => {
+    dispatch({ type: "UPDATE_COURSE", payload: course });
+  };
+
+  const deleteCourse = (courseId: string) => {
+    dispatch({ type: "DELETE_COURSE", payload: courseId });
+  };
+
   const addAssignment = (input: AddAssignmentInput): Assignment => {
     const assignment: Assignment = { id: createId(), ...input };
     dispatch({ type: "ADD_ASSIGNMENT", payload: assignment });
     return assignment;
+  };
+
+  const updateAssignment = (assignment: Assignment) => {
+    dispatch({ type: "UPDATE_ASSIGNMENT", payload: assignment });
+  };
+
+  const deleteAssignment = (assignmentId: string) => {
+    dispatch({ type: "DELETE_ASSIGNMENT", payload: assignmentId });
   };
 
   const addSubmission = (input: AddSubmissionInput): Submission => {
@@ -190,8 +283,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
   const value: DataContextValue = {
     state,
     addUser,
+    updateUser,
+    deleteUser,
     addCourse,
+    updateCourse,
+    deleteCourse,
     addAssignment,
+    updateAssignment,
+    deleteAssignment,
     addSubmission
   };
 
