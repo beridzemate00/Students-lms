@@ -7,6 +7,12 @@ const CoursesPage: React.FC = () => {
   const { state, addCourse, updateCourse, deleteCourse } = useData();
   const { currentUser } = useAuth();
 
+  if (!currentUser) return null;
+
+  const isTeacher = currentUser.role === "teacher";
+  const isAdmin = currentUser.role === "admin";
+  const canManage = isTeacher || isAdmin;
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -15,18 +21,18 @@ const CoursesPage: React.FC = () => {
   const teachers = state.users.filter((u) => u.role === "teacher");
 
   useEffect(() => {
-    if (currentUser?.role === "teacher") {
+    if (isTeacher) {
       setTeacherId(currentUser.id);
     } else if (!teacherId && teachers[0]) {
       setTeacherId(teachers[0].id);
     }
-  }, [currentUser, teachers, teacherId]);
+  }, [isTeacher, currentUser, teachers, teacherId]);
 
   const resetForm = () => {
     setEditingId(null);
     setTitle("");
     setDescription("");
-    if (currentUser?.role === "teacher") {
+    if (isTeacher) {
       setTeacherId(currentUser.id);
     } else if (teachers[0]) {
       setTeacherId(teachers[0].id);
@@ -58,16 +64,14 @@ const CoursesPage: React.FC = () => {
   const handleDelete = (id: string) => {
     if (!window.confirm("Delete this course?")) return;
     deleteCourse(id);
-    if (editingId === id) {
-      resetForm();
-    }
+    if (editingId === id) resetForm();
   };
 
   const titleText = editingId ? "Edit course" : "Create course";
   const buttonLabel = editingId ? "Save changes" : "Create";
 
   const visibleCourses =
-    currentUser?.role === "teacher"
+    isTeacher
       ? state.courses.filter((c) => c.teacherId === currentUser.id)
       : state.courses;
 
@@ -78,57 +82,59 @@ const CoursesPage: React.FC = () => {
     <div>
       <h1 className="page-title">Courses</h1>
 
-      <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <h2 className="card-title">{titleText}</h2>
-        <form className="simple-form" onSubmit={handleSubmit}>
-          <label className="field-inline">
-            <span>Title</span>
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-            />
-          </label>
+      {canManage && (
+        <div className="card" style={{ marginBottom: "1.5rem" }}>
+          <h2 className="card-title">{titleText}</h2>
+          <form className="simple-form" onSubmit={handleSubmit}>
+            <label className="field-inline">
+              <span>Title</span>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+              />
+            </label>
 
-          <label className="field-inline">
-            <span>Description</span>
-            <input
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="optional"
-            />
-          </label>
+            <label className="field-inline">
+              <span>Description</span>
+              <input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="optional"
+              />
+            </label>
 
-          <label className="field-inline">
-            <span>Teacher</span>
-            <select
-              value={teacherId}
-              onChange={(e) => setTeacherId(e.target.value)}
-              disabled={currentUser?.role === "teacher"}
-            >
-              {teachers.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </label>
+            <label className="field-inline">
+              <span>Teacher</span>
+              <select
+                value={teacherId}
+                onChange={(e) => setTeacherId(e.target.value)}
+                disabled={isTeacher}
+              >
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <button className="btn-primary" type="submit">
-            {buttonLabel}
-          </button>
-
-          {editingId && (
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={resetForm}
-            >
-              Cancel
+            <button className="btn-primary" type="submit">
+              {buttonLabel}
             </button>
-          )}
-        </form>
-      </div>
+
+            {editingId && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={resetForm}
+              >
+                Cancel
+              </button>
+            )}
+          </form>
+        </div>
+      )}
 
       <div className="card">
         <h2 className="card-title">All courses</h2>
@@ -138,7 +144,7 @@ const CoursesPage: React.FC = () => {
               <th>Title</th>
               <th>Teacher</th>
               <th>Description</th>
-              <th style={{ width: "180px" }}>Actions</th>
+              {canManage && <th style={{ width: "180px" }}>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -147,29 +153,31 @@ const CoursesPage: React.FC = () => {
                 <td>{c.title}</td>
                 <td>{getTeacherName(c.teacherId)}</td>
                 <td className="muted-small">{c.description}</td>
-                <td>
-                  <div className="actions">
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      onClick={() => startEdit(c)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="btn-danger"
-                      onClick={() => handleDelete(c.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
+                {canManage && (
+                  <td>
+                    <div className="actions">
+                      <button
+                        type="button"
+                        className="btn-secondary"
+                        onClick={() => startEdit(c)}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-danger"
+                        onClick={() => handleDelete(c.id)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </td>
+                )}
               </tr>
             ))}
             {visibleCourses.length === 0 && (
               <tr>
-                <td colSpan={4} className="muted">
+                <td colSpan={canManage ? 4 : 3} className="muted">
                   No courses yet.
                 </td>
               </tr>
