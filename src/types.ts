@@ -6,6 +6,7 @@ export interface User {
   email: string;
   role: Role;
   password: string;
+  classGroup?: string; //class types
 }
 
 export interface Course {
@@ -28,6 +29,6 @@ export interface Submission {
   assignmentId: string;
   studentId: string;
   status: "pending" | "submitted";
-  grade?: number;
+  grade?: number;      // 0-100
   submittedAt?: string;
 }

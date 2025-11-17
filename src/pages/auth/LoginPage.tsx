@@ -54,14 +54,14 @@ const LoginPage: React.FC = () => {
           <button className="btn-primary" type="submit" disabled={loading}>
             {loading ? "Signing in..." : "Sign in"}
           </button>
-          <div className="helper-text">
+          {/* <div className="helper-text">
             Demo accounts:
             <ul>
               <li>Admin: admin@example.com / password123</li>
               <li>Teacher: teacher@example.com / password123</li>
               <li>Student: student@example.com / password123</li>
             </ul>
-          </div>
+          </div> */}
         </form>
       </div>
     </div>

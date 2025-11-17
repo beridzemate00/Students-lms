@@ -12,6 +12,7 @@ const UsersPage: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("password123");
   const [role, setRole] = useState<Role>("student");
+  const [classGroup, setClassGroup] = useState("");
 
   const resetForm = () => {
     setEditingId(null);
@@ -19,6 +20,7 @@ const UsersPage: React.FC = () => {
     setEmail("");
     setPassword("password123");
     setRole("student");
+    setClassGroup("");
   };
 
   const startEdit = (user: User) => {
@@ -27,16 +29,25 @@ const UsersPage: React.FC = () => {
     setEmail(user.email);
     setPassword(user.password);
     setRole(user.role);
+    setClassGroup(user.classGroup || "");
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !password) return;
 
+    const payload = {
+      name,
+      email,
+      password,
+      role,
+      classGroup: role === "student" ? classGroup : undefined
+    };
+
     if (editingId) {
-      updateUser({ id: editingId, name, email, password, role });
+      updateUser(editingId, payload);
     } else {
-      addUser({ name, email, password, role });
+      addUser(payload);
     }
 
     resetForm();
@@ -45,6 +56,9 @@ const UsersPage: React.FC = () => {
   const handleDelete = (id: string) => {
     if (!window.confirm("Delete this user?")) return;
     deleteUser(id);
+    if (editingId === id) {
+      resetForm();
+    }
   };
 
   const title = editingId ? "Edit user" : "Create user";
@@ -53,6 +67,7 @@ const UsersPage: React.FC = () => {
   return (
     <div>
       <h1 className="page-title">Users</h1>
+
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <h2 className="card-title">{title}</h2>
         <form className="simple-form" onSubmit={handleSubmit}>
@@ -64,6 +79,7 @@ const UsersPage: React.FC = () => {
               required
             />
           </label>
+
           <label className="field-inline">
             <span>Email</span>
             <input
@@ -73,6 +89,7 @@ const UsersPage: React.FC = () => {
               required
             />
           </label>
+
           <label className="field-inline">
             <span>Password</span>
             <input
@@ -82,6 +99,7 @@ const UsersPage: React.FC = () => {
               required
             />
           </label>
+
           <label className="field-inline">
             <span>Role</span>
             <select
@@ -95,9 +113,23 @@ const UsersPage: React.FC = () => {
               ))}
             </select>
           </label>
+
+          {role === "student" && (
+            <label className="field-inline">
+              <span>Class / Grade</span>
+              <input
+                type="text"
+                placeholder="e.g. 11B, 5G"
+                value={classGroup}
+                onChange={(e) => setClassGroup(e.target.value)}
+              />
+            </label>
+          )}
+
           <button className="btn-primary" type="submit">
             {buttonLabel}
           </button>
+
           {editingId && (
             <button
               type="button"
@@ -118,7 +150,8 @@ const UsersPage: React.FC = () => {
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
-              <th style={{ width: "140px" }}>Actions</th>
+              <th>Class</th>
+              <th style={{ width: "180px" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -129,6 +162,7 @@ const UsersPage: React.FC = () => {
                 <td>
                   <span className="pill">{u.role}</span>
                 </td>
+                <td>{u.role === "student" ? u.classGroup || "—" : "—"}</td>
                 <td>
                   <div className="actions">
                     <button
@@ -151,7 +185,7 @@ const UsersPage: React.FC = () => {
             ))}
             {state.users.length === 0 && (
               <tr>
-                <td colSpan={4} className="muted">
+                <td colSpan={5} className="muted">
                   No users yet.
                 </td>
               </tr>

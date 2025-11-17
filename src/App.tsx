@@ -6,7 +6,6 @@ import LoginPage from "./pages/auth/LoginPage";
 import DashboardPage from "./pages/dashboard/DashboardPage";
 import UsersPage from "./pages/users/UsersPage";
 import CoursesPage from "./pages/courses/CoursesPage";
-import AssignmentsPage from "./pages/assignments/AssignmentsPage";
 import { useAuth } from "./context/AuthContext";
 
 const App: React.FC = () => {
@@ -38,7 +37,6 @@ const App: React.FC = () => {
           }
         />
         <Route path="courses" element={<CoursesPage />} />
-        <Route path="assignments" element={<AssignmentsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

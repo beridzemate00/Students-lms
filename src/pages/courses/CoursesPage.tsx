@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useData } from "../../context/DataContext";
 import { useAuth } from "../../context/AuthContext";
-import type { User } from "../../types";
+import type { Course } from "../../types";
 
 const CoursesPage: React.FC = () => {
   const { state, addCourse, updateCourse, deleteCourse } = useData();
@@ -33,117 +33,126 @@ const CoursesPage: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !teacherId) return;
-
-    if (editingId) {
-      updateCourse({ id: editingId, title, description, teacherId });
-    } else {
-      addCourse({ title, description, teacherId });
-    }
-
-    resetForm();
-  };
-
-  const startEdit = (courseId: string) => {
-    const course = state.courses.find((c) => c.id === courseId);
-    if (!course) return;
+  const startEdit = (course: Course) => {
     setEditingId(course.id);
     setTitle(course.title);
     setDescription(course.description || "");
     setTeacherId(course.teacherId);
   };
 
-  const handleDelete = (courseId: string) => {
-    if (!window.confirm("Delete this course?")) return;
-    deleteCourse(courseId);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title || !teacherId) return;
+
+    const payload = { title, description, teacherId };
+
+    if (editingId) {
+      updateCourse(editingId, payload);
+    } else {
+      addCourse(payload);
+    }
+
+    resetForm();
   };
 
-  const resolveTeacher = (id: string): User | undefined =>
-    state.users.find((u) => u.id === id);
+  const handleDelete = (id: string) => {
+    if (!window.confirm("Delete this course?")) return;
+    deleteCourse(id);
+    if (editingId === id) {
+      resetForm();
+    }
+  };
+
+  const titleText = editingId ? "Edit course" : "Create course";
+  const buttonLabel = editingId ? "Save changes" : "Create";
 
   const visibleCourses =
     currentUser?.role === "teacher"
       ? state.courses.filter((c) => c.teacherId === currentUser.id)
       : state.courses;
 
-  const titleText = editingId ? "Edit course" : "Create course";
-  const buttonLabel = editingId ? "Save changes" : "Create";
-
-  const canEdit =
-    currentUser && (currentUser.role === "admin" || currentUser.role === "teacher");
+  const getTeacherName = (id: string) =>
+    state.users.find((u) => u.id === id)?.name || "Unknown";
 
   return (
     <div>
       <h1 className="page-title">Courses</h1>
 
-      {canEdit && (
-        <div className="card" style={{ marginBottom: "1.5rem" }}>
-          <h2 className="card-title">{titleText}</h2>
-          <form className="simple-form" onSubmit={handleSubmit}>
-            <label className="field-inline">
-              <span>Title</span>
-              <input
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-              />
-            </label>
-            <label className="field-inline">
-              <span>Description</span>
-              <input
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </label>
-            <label className="field-inline">
-              <span>Teacher</span>
-              <select
-                value={teacherId}
-                onChange={(e) => setTeacherId(e.target.value)}
-              >
-                {teachers.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button className="btn-primary" type="submit">
-              {buttonLabel}
+      <div className="card" style={{ marginBottom: "1.5rem" }}>
+        <h2 className="card-title">{titleText}</h2>
+        <form className="simple-form" onSubmit={handleSubmit}>
+          <label className="field-inline">
+            <span>Title</span>
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </label>
+
+          <label className="field-inline">
+            <span>Description</span>
+            <input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="optional"
+            />
+          </label>
+
+          <label className="field-inline">
+            <span>Teacher</span>
+            <select
+              value={teacherId}
+              onChange={(e) => setTeacherId(e.target.value)}
+              disabled={currentUser?.role === "teacher"}
+            >
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <button className="btn-primary" type="submit">
+            {buttonLabel}
+          </button>
+
+          {editingId && (
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={resetForm}
+            >
+              Cancel
             </button>
-            {editingId && (
-              <button
-                type="button"
-                className="btn-secondary"
-                onClick={resetForm}
-              >
-                Cancel
-              </button>
-            )}
-          </form>
-        </div>
-      )}
+          )}
+        </form>
+      </div>
 
       <div className="card">
         <h2 className="card-title">All courses</h2>
-        <div className="grid">
-          {visibleCourses.map((c) => {
-            const teacher = resolveTeacher(c.teacherId);
-            return (
-              <div key={c.id} className="card course-card">
-                <h3>{c.title}</h3>
-                <p className="muted">{c.description}</p>
-                <p className="muted-small">
-                  Teacher: {teacher ? teacher.name : "Unknown"}
-                </p>
-                {canEdit && (
-                  <div className="actions" style={{ marginTop: "0.5rem" }}>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Teacher</th>
+              <th>Description</th>
+              <th style={{ width: "180px" }}>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleCourses.map((c) => (
+              <tr key={c.id}>
+                <td>{c.title}</td>
+                <td>{getTeacherName(c.teacherId)}</td>
+                <td className="muted-small">{c.description}</td>
+                <td>
+                  <div className="actions">
                     <button
                       type="button"
                       className="btn-secondary"
-                      onClick={() => startEdit(c.id)}
+                      onClick={() => startEdit(c)}
                     >
                       Edit
                     </button>
@@ -155,14 +164,18 @@ const CoursesPage: React.FC = () => {
                       Delete
                     </button>
                   </div>
-                )}
-              </div>
-            );
-          })}
-          {visibleCourses.length === 0 && (
-            <p className="muted">No courses yet.</p>
-          )}
-        </div>
+                </td>
+              </tr>
+            ))}
+            {visibleCourses.length === 0 && (
+              <tr>
+                <td colSpan={4} className="muted">
+                  No courses yet.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
