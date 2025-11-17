@@ -1,9 +1,10 @@
+// src/context/DataContext.tsx
 import React, {
   createContext,
   useContext,
   useEffect,
   useReducer,
-  ReactNode
+  ReactNode,
 } from "react";
 import type { Assignment, Course, Submission, User, Role } from "../types";
 
@@ -23,6 +24,11 @@ type DataAction =
   | { type: "UPDATE_COURSE"; payload: { id: string; updates: Partial<Course> } }
   | { type: "DELETE_COURSE"; payload: { id: string } }
   | { type: "ADD_ASSIGNMENT"; payload: Assignment }
+  | {
+      type: "UPDATE_ASSIGNMENT";
+      payload: { id: string; updates: Partial<Assignment> };
+    }
+  | { type: "DELETE_ASSIGNMENT"; payload: { id: string } }
   | { type: "ADD_SUBMISSION"; payload: Submission };
 
 interface AddUserInput {
@@ -53,13 +59,23 @@ interface AddSubmissionInput {
 
 interface DataContextValue {
   state: DataState;
+
+  // users
   addUser: (input: AddUserInput) => User;
   updateUser: (id: string, updates: Partial<User>) => void;
   deleteUser: (id: string) => void;
+
+  // courses
   addCourse: (input: AddCourseInput) => Course;
   updateCourse: (id: string, updates: Partial<Course>) => void;
   deleteCourse: (id: string) => void;
+
+  // assignments
   addAssignment: (input: AddAssignmentInput) => Assignment;
+  updateAssignment: (id: string, updates: Partial<Assignment>) => void;
+  deleteAssignment: (id: string) => void;
+
+  // submissions
   addSubmission: (input: AddSubmissionInput) => Submission;
 }
 
@@ -70,6 +86,7 @@ const DataContext = createContext<DataContextValue | undefined>(undefined);
 const createId = () =>
   `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
+// --- SEED DATA (начальные данные) ---
 const seedState: DataState = {
   users: [
     {
@@ -77,14 +94,14 @@ const seedState: DataState = {
       name: "Admin User",
       email: "admin@example.com",
       password: "password123",
-      role: "admin"
+      role: "admin",
     },
     {
       id: "u-teacher",
       name: "Jane Teacher",
       email: "teacher@example.com",
       password: "password123",
-      role: "teacher"
+      role: "teacher",
     },
     {
       id: "u-student",
@@ -92,22 +109,22 @@ const seedState: DataState = {
       email: "student@example.com",
       password: "password123",
       role: "student",
-      classGroup: "11B"
-    }
+      classGroup: "11B",
+    },
   ],
   courses: [
     {
       id: "c-js",
       title: "Intro to JavaScript",
       description: "Basics of JavaScript for the web.",
-      teacherId: "u-teacher"
+      teacherId: "u-teacher",
     },
     {
       id: "c-math",
       title: "Algebra I",
       description: "Core algebra concepts.",
-      teacherId: "u-teacher"
-    }
+      teacherId: "u-teacher",
+    },
   ],
   assignments: [
     {
@@ -115,17 +132,17 @@ const seedState: DataState = {
       courseId: "c-js",
       title: "Variables & Types",
       description: "Practice with let, const, and data types.",
-      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString()
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
       id: "a-2",
       courseId: "c-math",
       title: "Linear Equations",
       description: "Solve basic linear equations.",
-      dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString()
-    }
+      dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+    },
   ],
-  submissions: []
+  submissions: [],
 };
 
 const loadInitialState = (): DataState => {
@@ -145,6 +162,7 @@ const reducer = (state: DataState, action: DataAction): DataState => {
   switch (action.type) {
     case "SET_STATE":
       return action.payload;
+
     case "ADD_USER":
       return { ...state, users: [...state.users, action.payload] };
     case "UPDATE_USER":
@@ -152,13 +170,14 @@ const reducer = (state: DataState, action: DataAction): DataState => {
         ...state,
         users: state.users.map((u) =>
           u.id === action.payload.id ? { ...u, ...action.payload.updates } : u
-        )
+        ),
       };
     case "DELETE_USER":
       return {
         ...state,
-        users: state.users.filter((u) => u.id !== action.payload.id)
+        users: state.users.filter((u) => u.id !== action.payload.id),
       };
+
     case "ADD_COURSE":
       return { ...state, courses: [...state.courses, action.payload] };
     case "UPDATE_COURSE":
@@ -166,23 +185,44 @@ const reducer = (state: DataState, action: DataAction): DataState => {
         ...state,
         courses: state.courses.map((c) =>
           c.id === action.payload.id ? { ...c, ...action.payload.updates } : c
-        )
+        ),
       };
     case "DELETE_COURSE":
       return {
         ...state,
-        courses: state.courses.filter((c) => c.id !== action.payload.id)
+        courses: state.courses.filter((c) => c.id !== action.payload.id),
       };
+
     case "ADD_ASSIGNMENT":
       return { ...state, assignments: [...state.assignments, action.payload] };
+    case "UPDATE_ASSIGNMENT":
+      return {
+        ...state,
+        assignments: state.assignments.map((a) =>
+          a.id === action.payload.id ? { ...a, ...action.payload.updates } : a
+        ),
+      };
+    case "DELETE_ASSIGNMENT":
+      return {
+        ...state,
+        assignments: state.assignments.filter(
+          (a) => a.id !== action.payload.id
+        ),
+      };
+
     case "ADD_SUBMISSION":
       return { ...state, submissions: [...state.submissions, action.payload] };
+
     default:
       return state;
   }
 };
 
-export const DataProvider = ({ children }: { children: ReactNode }) => {
+// --- PROVIDER ---
+
+export const DataProvider: React.FC<{ children: ReactNode }> = ({
+  children,
+}) => {
   const [state, dispatch] = useReducer(reducer, undefined, loadInitialState);
 
   useEffect(() => {
@@ -190,6 +230,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
+  // USERS
   const addUser = (input: AddUserInput): User => {
     const user: User = { id: createId(), ...input };
     dispatch({ type: "ADD_USER", payload: user });
@@ -204,6 +245,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: "DELETE_USER", payload: { id } });
   };
 
+  // COURSES
   const addCourse = (input: AddCourseInput): Course => {
     const course: Course = { id: createId(), ...input };
     dispatch({ type: "ADD_COURSE", payload: course });
@@ -218,19 +260,29 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     dispatch({ type: "DELETE_COURSE", payload: { id } });
   };
 
+  // ASSIGNMENTS
   const addAssignment = (input: AddAssignmentInput): Assignment => {
     const assignment: Assignment = { id: createId(), ...input };
     dispatch({ type: "ADD_ASSIGNMENT", payload: assignment });
     return assignment;
   };
 
+  const updateAssignment = (id: string, updates: Partial<Assignment>) => {
+    dispatch({ type: "UPDATE_ASSIGNMENT", payload: { id, updates } });
+  };
+
+  const deleteAssignment = (id: string) => {
+    dispatch({ type: "DELETE_ASSIGNMENT", payload: { id } });
+  };
+
+  // SUBMISSIONS
   const addSubmission = (input: AddSubmissionInput): Submission => {
     const submission: Submission = {
       id: createId(),
       assignmentId: input.assignmentId,
       studentId: input.studentId,
       status: "submitted",
-      submittedAt: new Date().toISOString()
+      submittedAt: new Date().toISOString(),
     };
     dispatch({ type: "ADD_SUBMISSION", payload: submission });
     return submission;
@@ -245,14 +297,20 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     updateCourse,
     deleteCourse,
     addAssignment,
-    addSubmission
+    updateAssignment,
+    deleteAssignment,
+    addSubmission,
   };
 
-  return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
+  return (
+    <DataContext.Provider value={value}>{children}</DataContext.Provider>
+  );
 };
 
 export const useData = () => {
   const ctx = useContext(DataContext);
-  if (!ctx) throw new Error("useData must be used within DataProvider");
+  if (!ctx) {
+    throw new Error("useData must be used within DataProvider");
+  }
   return ctx;
 };

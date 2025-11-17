@@ -16,7 +16,8 @@ const dateToInput = (iso?: string) => {
 };
 
 const AssignmentsPage: React.FC = () => {
-  const { state, addAssignment, updateAssignment, deleteAssignment } = useData();
+    const { state, addAssignment, updateAssignment, deleteAssignment } = useData();
+
   const { currentUser } = useAuth();
 
   if (!currentUser) return null;
